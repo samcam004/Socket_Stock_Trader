@@ -82,19 +82,7 @@ public class Server
                                 out.writeUTF("The list of active users: " + w + IP);
                             }
                              case "LOOKUP" -> {
-                                    if (command[1].length() != 4) {
-                                    out.write(2);
-                                    out.writeUTF("404 Your Search didn't match any records");
-                                    out.writeUTF("Improper Stock Symbol Format");
-                                }
-                                else if (Integer.parseInt(command[4]) != 1) {
-                                    out.write(2);
-                                    out.writeUTF("404 Your Search didn't match any records");
-                                    out.writeUTF("User does not exist");
-                                } else {
-                                    sellStock(out, command[1], Double.parseDouble(command[2]),
-                                            Double.parseDouble(command[3]), Integer.parseInt(command[4]));
-                                }
+                               printMSFT(out);
                             }
                             case "QUIT" -> {
                                 out.write(1);
@@ -151,6 +139,66 @@ public class Server
         }
         System.out.println("Opened database successfully\n");
     }
+       
+    // print out MSFT
+     private void printMSFT(DataOutputStream out) {
+            Connection c;
+            Statement stmt;
+            int count = 0;
+
+            try {
+                Class.forName("org.sqlite.JDBC");
+                c = DriverManager.getConnection("jdbc:sqlite:stock.db");
+                c.setAutoCommit(false);
+                //System.out.println("Opened database successfully");
+                stmt = c.createStatement();
+                ResultSet empty = stmt.executeQuery( "SELECT * FROM stocks;" );
+
+                if (!empty.next()){
+                    System.out.println("No stocks owned");
+                    o.write(2);
+                    o.writeUTF("200 OK");
+                    o.writeUTF("No stocks owned");
+                    empty.close();
+                    //o.flush();
+                } else {
+
+                    ResultSet total = stmt.executeQuery("SELECT * FROM stocks;");
+
+                    while(total.next())
+                        count++;
+
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM stocks;");
+
+                    while (rs.next()) {
+                        int id = rs.getInt("id");
+                        String symbol = rs.getString("stock_symbol");
+                        double amount = rs.getDouble("stock_amount");
+                        double balance = rs.getDouble("stock_balance");
+                        int user_id = rs.getInt("user_id");
+                        
+                        o.writeUTF("Found " + count + 1  +"match");
+
+                        System.out.println("ID = " + id);
+                        System.out.println("Stock Symbol = " + symbol);
+                        System.out.println("Stock Amount = " + amount);
+                        System.out.println("Stock Balance = " + balance);
+                        System.out.println("User ID = " + user_id);
+                        System.out.println();
+
+                        o.writeUTF("MSFT " + symbol);
+                    }
+                    total.close();
+                    rs.close();
+                }
+                stmt.close();
+                c.close();
+            } catch ( Exception e ) {
+                System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+                System.exit(0);
+            }
+            System.out.println("Operation done successfully\n");
+     }
 
 // Gets active users and IP address
 public static String findWho() {
