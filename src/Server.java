@@ -81,12 +81,14 @@ public class Server
                                 String IP = getIP(request);
                                 out.writeUTF("The list of active users: " + w + IP);
                             }
-                            case "LOOKUP" -> {
+                             case "LOOKUP" -> {
                                 out.write(2);
                                 out.writeUTF("200 OK");
                                 String l = findLookup();
+                                String msft = findMSFT();
                                 out.writeUTF("Found " + l + " match");
-                            }
+                                out.writeUTF("MSFT " + msft);
+                             }
                             case "QUIT" -> {
                                 out.write(1);
                                 out.writeUTF("200 OK");
