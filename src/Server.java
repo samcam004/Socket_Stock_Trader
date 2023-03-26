@@ -82,12 +82,20 @@ public class Server
                                 out.writeUTF("The list of active users: " + w + IP);
                             }
                              case "LOOKUP" -> {
-                                out.write(2);
-                                out.writeUTF("200 OK");
-                                String l = findLookup();
-                                String msft = findMSFT();
-                                out.writeUTF("Found " + l + " match");
-                                out.writeUTF("MSFT " + msft);
+                                    if (command[1].length() != 4) {
+                                    out.write(2);
+                                    out.writeUTF("404 Your Search didn't match any records");
+                                    out.writeUTF("Improper Stock Symbol Format");
+                                }
+                                else if (Integer.parseInt(command[4]) != 1) {
+                                    out.write(2);
+                                    out.writeUTF("404 Your Search didn't match any records");
+                                    out.writeUTF("User does not exist");
+                                } else {
+                                    sellStock(out, command[1], Double.parseDouble(command[2]),
+                                            Double.parseDouble(command[3]), Integer.parseInt(command[4]));
+                                }
+                            }
                              }
                             case "QUIT" -> {
                                 out.write(1);
