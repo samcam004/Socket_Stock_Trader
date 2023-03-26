@@ -74,6 +74,19 @@ public class Server
                                 double d = findBalance();
                                 out.writeUTF("Balance for user John Doe: $" + d);
                             }
+                            case "WHO" -> {
+                                out.write(2);
+                                out.writeUTF("200 OK");
+                                String w = findWho();
+                                String IP = getIP(request);
+                                out.writeUTF("The list of active users: " + w + IP);
+                            }
+                            case "LOOKUP" -> {
+                                out.write(2);
+                                out.writeUTF("200 OK");
+                                String l = findLookup();
+                                out.writeUTF("Found " + l + " match");
+                            }
                             case "QUIT" -> {
                                 out.write(1);
                                 out.writeUTF("200 OK");
@@ -130,6 +143,48 @@ public class Server
         System.out.println("Opened database successfully\n");
     }
 
+// Gets active users and IP address
+public static String findWho() {
+    Connection c;
+    Statement stmt;
+
+    try {
+        Class.forName("org.sqlite.JDBC");
+        c = DriverManager.getConnection("jdbc:sqlite:stock.db");
+        c.setAutoCommit(false);
+        //System.out.println("Opened database successfully");
+
+        stmt = c.createStatement();
+        System.out.println("Printing Current Users");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
+
+        while (rs.next()) {
+            int id = rs.getInt("id");
+            String  fName = rs.getString("first_name");
+            String  lName = rs.getString("last_name");
+            String  uName = rs.getString("user_name");
+            String  pWord = rs.getString("password");
+            String  IP  = rs.getString("IP_address");
+
+            System.out.println( "ID = " + id );
+            System.out.println( "First name = " + fName );
+            System.out.println( "Last name = " + lName );
+            System.out.println( "User name = " + uName );
+            System.out.println( "PASSWORD = " + pWord );
+            System.out.println( "Ip address = " + IP );
+            System.out.println();
+        }
+        rs.close();
+        stmt.close();
+        c.close();
+    } catch ( Exception e ) {
+        System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+        System.exit(0);
+    }
+    System.out.println("Operation done successfully\n");
+    return null;
+
+}
     //Checks table users, if one does not exist, it is created
     public static void userTable() {
         Connection c;
@@ -206,11 +261,7 @@ public class Server
             if (!empty.next()){
                 System.out.println("Generating User");
                 String sql = "INSERT INTO users (id, first_name,last_name,user_name,password,usd_balance) " +
-                        " VALUES (+1, 'ADMIN', 'ADMIN', 'Root', 'Root01', 0.0 )," +
-                        " (+2, 'Mary', 'Ann', 'Mary', 'Mary01', 100.00)," +
-                        " (+3, 'John', 'Doe', 'John', 'John01', 100.00)," +
-                        " (+4, 'Moe', 'Moe', 'Moe', 'Moe01', 100.0 ) ";
-                
+                        " VALUES (+1, 'John', 'Doe', 'JD', '1234', 100.00 );";
                 stmt.executeUpdate(sql);
                 c.commit();
                 empty.close();
