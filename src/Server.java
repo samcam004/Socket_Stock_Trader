@@ -1,6 +1,7 @@
 import java.net.*;
 import java.io.*;
 import java.sql.*;
+import java.util.ArrayList;
 
 public class Server
 {
@@ -18,6 +19,11 @@ public class Server
                 Socket socket = server.accept();
                 System.out.println("Client accepted\n");
 
+                ClientHandler clientHandler = new ClientHandler(socket);
+
+                Thread thread = new Thread(clientHandler);
+                thread.start();
+/*
                 // takes input from the client socket
                 DataInputStream in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 
@@ -106,8 +112,7 @@ public class Server
                 System.out.println("Closing connection");
 
                 // close connection
-                socket.close();
-                in.close();
+                socket.close();*/
             }
         }
         catch(IOException i)
@@ -537,6 +542,58 @@ public class Server
         }
     }
 
+    private String logIn(DataOutputStream o, String s, String s1) {
+        Connection c;
+        Statement stmt;
+
+        try {
+            Class.forName("org.sqlite.JDBC");
+            c = DriverManager.getConnection("jdbc:sqlite:stock.db");
+            c.setAutoCommit(false);
+            System.out.println("Attempting Login");
+
+            stmt = c.createStatement();
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
+
+            String user;
+            int count = 0;
+
+            while (rs.next()) {
+                user = rs.getString("user_name");
+                System.out.println(user + " : " + s + " -> " + count);
+
+                if (user.equals(s.toString())) {
+                    if (rs.getString("password").equals(s1)) {
+                        System.out.println("MATCH: " + user);
+                        o.write(2);
+                        o.writeUTF("200 OK");
+                        o.writeUTF("LOGGED IN AS: " + s);
+                        return user;
+                    } else {
+                        o.write(2);
+                        o.writeUTF("400 ERROR");
+                        o.writeUTF("PASSWORD INCORRECT");
+                        return null;
+                    }
+                }
+
+                count++;
+            }
+            o.write(2);
+            o.writeUTF("400 ERROR");
+            o.writeUTF("USER NOT FOUND");
+
+            rs.close();
+            stmt.close();
+            c.close();
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        return null;
+    }
+
     //main
     public static void main(String[] args)
     {
@@ -547,4 +604,109 @@ public class Server
 
         Server server = new Server(3339);
     }
+
+    public class ClientHandler implements Runnable{
+
+        public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
+        private Socket client;
+        private DataInputStream in;
+        private DataOutputStream out;
+        private String clientUsername;
+        private String userName;
+
+        public ClientHandler(Socket socket) {
+            try {
+                this.client = socket;
+                this.out = new DataOutputStream(client.getOutputStream());
+                this.in = new DataInputStream(client.getInputStream());
+                this.userName = "";
+                clientHandlers.add(this);
+                System.out.println("Client: " + client.getRemoteSocketAddress() + " connected");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void run() {
+            String line;
+
+            while (client.isConnected()) {
+                try {
+                    line = in.readUTF();
+                    System.out.println("Received: " + line);
+                    //Takes input from client and tokenizes it for individual commands.
+                    String[] command = line.split("\\s");
+
+                    switch (command[0]) {
+                        case "LOGIN" -> {
+                            userName = logIn(out, command[1], command[2]);
+                        }
+                        case "BUY" -> {
+                            if (command[1].length() != 4) {
+                                out.write(2);
+                                out.writeUTF("403 Message Format Error");
+                                out.writeUTF("Improper Stock Symbol Format");
+                            }
+                            else if (Integer.parseInt(command[4]) != 1) {
+                                out.write(2);
+                                out.writeUTF("403 Message Format Error");
+                                out.writeUTF("User does not exist");
+                            } else {
+                                buyStock(out, command[1], Double.parseDouble(command[2]),
+                                        Double.parseDouble(command[3]), Integer.parseInt(command[4]));
+                            }
+                        }
+                        case "SELL" -> {
+                            if (command[1].length() != 4) {
+                                out.write(2);
+                                out.writeUTF("403 Message Format Error");
+                                out.writeUTF("Improper Stock Symbol Format");
+                            }
+                            else if (Integer.parseInt(command[4]) != 1) {
+                                out.write(2);
+                                out.writeUTF("403 Message Format Error");
+                                out.writeUTF("User does not exist");
+                            } else {
+                                sellStock(out, command[1], Double.parseDouble(command[2]),
+                                        Double.parseDouble(command[3]), Integer.parseInt(command[4]));
+                            }
+                        }
+                        case "LIST" -> //out.writeUTF("200 OK");
+                                printStock(out);
+                        case "BALANCE" -> {
+                            out.write(2);
+                            out.writeUTF("200 OK");
+                            double d = findBalance();
+                            out.writeUTF("Balance for user John Doe: $" + d);
+                        }
+                        case "QUIT" -> {
+                            out.write(1);
+                            out.writeUTF("200 OK");
+                            System.out.println("CLIENT QUIT");
+                        }
+                        case "SHUTDOWN" -> {
+                            out.write(2);
+                            out.writeUTF("200 OK");
+                            out.writeUTF("SERVER SHUTTING DOWN");
+                            System.out.println("SHUTTING DOWN");
+                            client.close();
+                            in.close();
+                            out.close();
+                            client.close();
+                        }
+                        default -> {
+                            System.out.println("INVALID COMMAND");
+                            out.write(2);
+                            out.writeUTF("400 ERROR");
+                            out.writeUTF("INVALID COMMAND");
+                        }
+                    }
+                } catch (IOException i) {
+                    System.out.println(i);
+                    //System.out.println("Connection lost");
+                }
+            }
+        }
+    }
+
 }
