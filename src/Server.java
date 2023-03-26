@@ -155,10 +155,10 @@ public class Server
                 ResultSet empty = stmt.executeQuery( "SELECT * FROM stocks;" );
 
                 if (!empty.next()){
-                    System.out.println("No stocks owned");
+                    System.out.println("404 Your Search didn't match any records");
                     o.write(2);
                     o.writeUTF("200 OK");
-                    o.writeUTF("No stocks owned");
+                    o.writeUTF("404 Your Search didn't match any records");
                     empty.close();
                     //o.flush();
                 } else {
