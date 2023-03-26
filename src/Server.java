@@ -96,7 +96,6 @@ public class Server
                                             Double.parseDouble(command[3]), Integer.parseInt(command[4]));
                                 }
                             }
-                             }
                             case "QUIT" -> {
                                 out.write(1);
                                 out.writeUTF("200 OK");
