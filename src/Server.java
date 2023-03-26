@@ -206,7 +206,11 @@ public class Server
             if (!empty.next()){
                 System.out.println("Generating User");
                 String sql = "INSERT INTO users (id, first_name,last_name,user_name,password,usd_balance) " +
-                        " VALUES (+1, 'John', 'Doe', 'JD', '1234', 100.00 );";
+                        " VALUES (+1, 'ADMIN', 'ADMIN', 'Root', 'Root01', 0.0 )," +
+                        " (+2, 'Mary', 'Ann', 'Mary', 'Mary01', 100.00)," +
+                        " (+3, 'John', 'Doe', 'John', 'John01', 100.00)," +
+                        " (+4, 'Moe', 'Moe', 'Moe', 'Moe01', 100.0 ) ";
+                
                 stmt.executeUpdate(sql);
                 c.commit();
                 empty.close();
