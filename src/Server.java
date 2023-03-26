@@ -177,7 +177,7 @@ public class Server
                         double balance = rs.getDouble("stock_balance");
                         int user_id = rs.getInt("user_id");
                         
-                        o.writeUTF("Found " + count + 1  +"match");
+                        o.writeUTF("Found " + count + 1  +" match");
 
                         System.out.println("ID = " + id);
                         System.out.println("Stock Symbol = " + symbol);
@@ -186,7 +186,7 @@ public class Server
                         System.out.println("User ID = " + user_id);
                         System.out.println();
 
-                        o.writeUTF("MSFT " + symbol);
+                        o.writeUTF("MSFT " + symbol + " " + amount);
                     }
                     total.close();
                     rs.close();
