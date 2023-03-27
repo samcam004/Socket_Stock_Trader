@@ -38,7 +38,7 @@ public class Client {
         //String to receive response code
         String serverOut;
 
-        while (!line.equals("QUIT")) {
+        while (socket.isConnected()) {
             try {
                 line = br.readLine();
                 out.writeUTF(line);
@@ -49,6 +49,7 @@ public class Client {
                     serverOut = input.readUTF();
                     System.out.println("S: " + serverOut);
                 }
+
 
                 if (line.equals("QUIT")) {
                     try {
@@ -74,11 +75,16 @@ public class Client {
         String ip;
         int port;
 
+        /*
         System.out.print("Enter IP: ");
         ip = in.nextLine();
 
         System.out.print("Enter port: ");
         port = Integer.parseInt(in.nextLine());
+        */
+
+        ip = "127.0.0.1";
+        port = 3339;
 
         //IP: 127.0.0.1 port: 3339
         Client client = new Client(ip, port);
