@@ -4,12 +4,17 @@ import java.util.Scanner;
 
 public class Client {
 
+    private Socket socket;
+    private DataInputStream input;
+    private DataOutputStream out;
+    private BufferedReader br;
+
     public Client(String address, int port) {
 
-        Socket socket;
-        DataInputStream input;
-        DataOutputStream out;
-        BufferedReader br;
+        //Socket socket;
+        //DataInputStream input;
+        //DataOutputStream out;
+        //BufferedReader br;
 
         try {
             socket = new Socket(address, port);
@@ -28,6 +33,7 @@ public class Client {
             System.out.println(u);
             return;
         }
+
 
         //String to read message from input
         String line = "";
@@ -69,8 +75,7 @@ public class Client {
         }
     }
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws IOException {
         Scanner in = new Scanner(System.in);
         String ip;
         int port;
@@ -88,5 +93,6 @@ public class Client {
 
         //IP: 127.0.0.1 port: 3339
         Client client = new Client(ip, port);
+
     }
 }

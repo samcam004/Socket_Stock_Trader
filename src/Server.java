@@ -257,11 +257,12 @@ public class Server
 
     }
 
-    //Prints a list of all stocks in the database
-    public void printStock(DataOutputStream o) {
+    //Prints a list of all stocks in the database. Root can see all stocks. Users can only see their stocks.
+    public void printStock(DataOutputStream o, int id) {
         Connection c;
         Statement stmt;
         int count = 0;
+        int stockNum = 1;
 
         try {
             Class.forName("org.sqlite.JDBC");
@@ -271,44 +272,91 @@ public class Server
             stmt = c.createStatement();
             ResultSet empty = stmt.executeQuery( "SELECT * FROM stocks;" );
 
-            if (!empty.next()){
+
+            if (!empty.next()) {
                 System.out.println("No stocks owned");
                 o.write(2);
                 o.writeUTF("200 OK");
-                o.writeUTF("No stocks owned");
+                o.writeUTF("No stocks in Database");
                 empty.close();
-                //o.flush();
             } else {
 
-                ResultSet total = stmt.executeQuery("SELECT * FROM stocks;");
+                if (id == 1) {
 
-                while(total.next())
-                    count++;
+                    ResultSet total = stmt.executeQuery("SELECT * FROM stocks;");
 
-                ResultSet rs = stmt.executeQuery("SELECT * FROM stocks;");
+                    while (total.next())
+                        count++;
 
-                o.write(count + 1);
-                o.writeUTF("The list of records in the Stocks database for user 1:");
+                    ResultSet rs = stmt.executeQuery("SELECT * FROM stocks;");
 
-                while (rs.next()) {
-                    int id = rs.getInt("id");
-                    String symbol = rs.getString("stock_symbol");
-                    double amount = rs.getDouble("stock_amount");
-                    double balance = rs.getDouble("stock_balance");
-                    int user_id = rs.getInt("user_id");
+                    o.write(count + 1);
+                    o.writeUTF("The list of records in the Stocks database:");
 
-                    o.writeUTF(id + " " + symbol + " " + amount + " " + balance + " " + user_id);
+                    while (rs.next()) {
+                        //int userID = rs.getInt("id");
+                        String symbol = rs.getString("stock_symbol");
+                        double amount = rs.getDouble("stock_amount");
+                        double balance = rs.getDouble("stock_balance");
+                        //String user = rs.getString("user_name");
+                        int user_id = rs.getInt("user_id");
 
-                    System.out.println("ID = " + id);
-                    System.out.println("Stock Symbol = " + symbol);
-                    System.out.println("Stock Amount = " + amount);
-                    System.out.println("Stock Balance = " + balance);
-                    System.out.println("User ID = " + user_id);
-                    System.out.println();
+                        o.writeUTF(stockNum + " " + symbol + " " + amount + " " + balance + " " + user_id);
+
+                        System.out.print("#" + stockNum);
+                        System.out.print(", Stock Symbol = " + symbol);
+                        System.out.print(", Stock Amount = " + amount);
+                        System.out.print(", Stock Balance = " + balance);
+                        System.out.print(", ID = " + id);
+                        System.out.println();
+                        stockNum++;
+                    }
+                    total.close();
+                    rs.close();
+                } else  {
+
+                    ResultSet total = stmt.executeQuery("SELECT * FROM stocks;");
+
+                    while (total.next()) {
+                        if (total.getInt("user_id") == id)
+                            count++;
+                    }
+
+                    System.out.println(count);
+
+                    if (count != 0) {
+                        ResultSet rs = stmt.executeQuery("SELECT * FROM stocks;");
+
+                        o.write(count + 1);
+                        o.writeUTF("The list of records in the Stocks database for User " + id + ":");
+
+                        while (rs.next()) {
+                            //int userID = rs.getInt("id");
+                            String symbol = rs.getString("stock_symbol");
+                            double amount = rs.getDouble("stock_amount");
+                            double balance = rs.getDouble("stock_balance");
+                            //String user = rs.getString("user_name");
+                            //int user_id = rs.getInt("user_id");
+
+                            o.writeUTF(stockNum + " " + symbol + " " + amount + " " + balance);
+
+                            System.out.print("#" + stockNum);
+                            System.out.print(", Stock Symbol = " + symbol);
+                            System.out.print(", Stock Amount = " + amount);
+                            System.out.print(", Stock Balance = " + balance);
+                            System.out.print(", ID = " + id);
+                            System.out.println();
+                            stockNum++;
+                        }
+                        total.close();
+                        rs.close();
+                    } else {
+                        o.write(2);
+                        o.writeUTF("200 OK");
+                        o.writeUTF("User " + id + " has no stocks");
+                    }
 
                 }
-                total.close();
-                rs.close();
             }
             stmt.close();
             c.close();
@@ -320,7 +368,7 @@ public class Server
     }
 
     //Finds the balance of a user
-    public double findBalance() {
+    public double findBalance(int id) {
         Connection c;
         Statement stmt;
         double usd = 0;
@@ -336,7 +384,8 @@ public class Server
             ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
 
             while (rs.next()) {
-                usd  = rs.getInt("usd_balance");
+                if (id == rs.getInt("ID"))
+                    usd  = rs.getInt("usd_balance");
             }
             rs.close();
             stmt.close();
@@ -354,8 +403,10 @@ public class Server
         Connection c;
         PreparedStatement stmt;
         Statement search;
-        double balance = findBalance();
+        double balance = findBalance(id);
         double cost = amount * price;
+
+        System.out.println("User " + id + " Buying Stock");
 
         if (cost <= balance) {
             try {
@@ -370,39 +421,43 @@ public class Server
                 while (rs.next()) {
                     String  sS = rs.getString("stock_symbol");
                     double  sA = rs.getDouble("stock_amount");
-                    double  sB = rs.getDouble("stock_balance");
+                    int     sI = rs.getInt("user_id");
+                    //double  sB = rs.getDouble("stock_balance");
 
                     //Checks to see if stock exists, if it does, it is modified with new values
                     if (sS.equals(symbol)) {
-                        String sql = "UPDATE stocks SET stock_amount = ?, stock_balance = ? WHERE stock_symbol = ?";
+                        System.out.println("\nBuying existing stock");
+                        String sql = "UPDATE stocks SET stock_amount = ?, stock_balance = ? WHERE stock_symbol = ? AND user_id = ?";
                         stmt = c.prepareStatement(sql);
 
                         stmt.setDouble(1, sA + amount);
                         stmt.setDouble(2, price);
                         stmt.setString(3, symbol);
+                        stmt.setInt(4, id);
                         stmt.executeUpdate();
 
-                        String update = "UPDATE users set usd_balance = ? where ID = 1;";
+                        String update = "UPDATE users set usd_balance = ? where ID = ?;";
                         stmt = c.prepareStatement(update);
 
                         stmt.setDouble(1, balance - cost);
+                        stmt.setInt(2, id);
 
                         stmt.executeUpdate();
-
-                        stmt.close();
-                        c.commit();
-                        c.close();
 
                         System.out.println("Bought existing Stock");
                         o.write(2);
                         o.writeUTF("200 OK");
                         o.writeUTF("BOUGHT: New balance: " + amount + " " + symbol + ". USD balance " + (balance - cost));
+
+                        stmt.close();
+                        c.commit();
+                        c.close();
                         return;
                     }
-
                 }
 
                 //If stock does not exist, then a new stock is added to the stock table
+                System.out.println("Buying new stock");
                 String sql = "INSERT INTO stocks (stock_symbol,stock_amount,stock_balance,user_id) " +
                         "VALUES (?, ?, ?, ?);";
                 stmt = c.prepareStatement(sql);
@@ -413,10 +468,11 @@ public class Server
                 stmt.setInt(4, id);
                 stmt.executeUpdate();
 
-                String update = "UPDATE users set usd_balance = ? where ID = 1;";
+                String update = "UPDATE users set usd_balance = ? where ID = ?;";
                 stmt = c.prepareStatement(update);
 
                 stmt.setDouble(1, balance - cost);
+                stmt.setInt(2, id);
 
                 stmt.executeUpdate();
 
@@ -446,7 +502,7 @@ public class Server
         PreparedStatement stmt;
         Statement search;
         Statement findTotal;
-        double balance = findBalance();
+        double balance = findBalance(id);
         double cost = amount * price;
 
         try {
@@ -471,7 +527,7 @@ public class Server
             while (rs.next()) {
                 String sS = rs.getString("stock_symbol");
                 double sA = rs.getDouble("stock_amount");
-                double sB = rs.getDouble("stock_balance");
+                //double sB = rs.getDouble("stock_balance");
 
                 if (sS.equals(symbol)) {
                     System.out.println("Found Match");
@@ -484,20 +540,23 @@ public class Server
                         stmt.setDouble(1, (sA - amount));
                         stmt.setDouble(2, cost);
                         stmt.setString(3, symbol);
+                        stmt.setInt(4, id);
                         stmt.executeUpdate();
                         c.commit();
 
-                        String update = "UPDATE users set usd_balance = ? where ID = 1;";
+                        String update = "UPDATE users set usd_balance = ? where ID = ?;";
                         stmt = c.prepareStatement(update);
 
                         stmt.setDouble(1, balance + cost);
+                        stmt.setInt(2, id);
+
                         stmt.executeUpdate();
                         c.commit();
 
                         System.out.println("Sell Transaction Complete");
                         o.write(2);
                         o.writeUTF("200 OK");
-                        o.writeUTF("SOLD: New balance: " + (sA - amount) + " " + symbol + ". USD balance " + (balance + cost));
+                        o.writeUTF("SOLD: Stock balance: " + (sA - amount) + " " + symbol + ". USD balance: $" + (balance + cost));
 
                     } else if (sA == amount) {
                         System.out.println("Same as owned amount");
@@ -518,7 +577,7 @@ public class Server
                         System.out.println("Sell Transaction Complete");
                         o.write(2);
                         o.writeUTF("200 OK");
-                        o.writeUTF("SOLD: New balance: " + (sA - amount) + " " + symbol + ". USD balance " + (balance + cost));
+                        o.writeUTF("SOLD: Stock balance: " + (sA - amount) + " " + symbol + ". USD balance: $" + (balance + cost));
 
                     } else {
                         System.out.println("Exceeds Amount");
@@ -548,6 +607,7 @@ public class Server
         }
     }
 
+    //Allows user to log in. Needs correct username and password. Returns string.
     public String logIn(DataOutputStream o, String s, String s1) {
         Connection c;
         Statement stmt;
@@ -556,18 +616,18 @@ public class Server
             Class.forName("org.sqlite.JDBC");
             c = DriverManager.getConnection("jdbc:sqlite:stock.db");
             c.setAutoCommit(false);
-            System.out.println("Attempting Login");
+            System.out.println("\nAttempting Login");
 
             stmt = c.createStatement();
 
             ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
 
             String user;
-            int count = 0;
+            //int count = 0;
 
             while (rs.next()) {
                 user = rs.getString("user_name");
-                System.out.println(user + " : " + s + " -> " + count);
+                System.out.println(user + " : " + s);
 
                 if (user.equals(s.toString())) {
                     if (rs.getString("password").equals(s1)) {
@@ -575,16 +635,26 @@ public class Server
                         o.write(2);
                         o.writeUTF("200 OK");
                         o.writeUTF("LOGGED IN AS: " + s);
+
+                        rs.close();
+                        stmt.close();
+                        c.close();
+
                         return user;
                     } else {
                         o.write(2);
                         o.writeUTF("400 ERROR");
                         o.writeUTF("PASSWORD INCORRECT");
+
+                        rs.close();
+                        stmt.close();
+                        c.close();
+
                         return "";
                     }
                 }
 
-                count++;
+                //count++;
             }
             o.write(2);
             o.writeUTF("400 ERROR");
@@ -600,6 +670,50 @@ public class Server
         return "";
     }
 
+    //Sets the User's id. Used for all functions.
+    public int setID(String userName) {
+        Connection c;
+        Statement stmt;
+
+        try {
+            Class.forName("org.sqlite.JDBC");
+            c = DriverManager.getConnection("jdbc:sqlite:stock.db");
+            c.setAutoCommit(false);
+            System.out.println("\nSetting user ID");
+
+            stmt = c.createStatement();
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
+
+            String user;
+            int id;
+            int count = 0;
+
+            while (rs.next()) {
+                user = rs.getString("user_name");
+
+                if (user.equals(userName.toString())) {
+                    id = rs.getInt("ID");
+                    System.out.println(userName + " ID: " + id);
+
+                    rs.close();
+                    stmt.close();
+                    c.close();
+
+                    return id;
+                }
+                count++;
+            }
+            rs.close();
+            stmt.close();
+            c.close();
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+        }
+        return 0;
+    }
+
+    //Allows user to logout. They need to input the proper username. Returns a boolean.
     public boolean logOut(DataOutputStream o, String s) {
         Connection c;
         Statement stmt;
@@ -622,6 +736,11 @@ public class Server
 
                 if (user.equals(s.toString())) {
                     System.out.println("User: " + user + " logging out.");
+
+                    rs.close();
+                    stmt.close();
+                    c.close();
+
                     return true;
                 }
 
@@ -641,6 +760,7 @@ public class Server
         return false;
     }
 
+    //Closes client socket when they quit from the server
     public void closeSocket(Socket socket, DataInputStream in, DataOutputStream out) {
         ClientHandler.clientHandlers.remove(this);
         try {
@@ -669,6 +789,7 @@ public class Server
         private DataInputStream in;
         private DataOutputStream out;
         private String userName;
+        private int id;
         private Boolean loggedIn;
 
         public ClientHandler(Socket socket) {
@@ -677,6 +798,7 @@ public class Server
                 this.out = new DataOutputStream(client.getOutputStream());
                 this.in = new DataInputStream(client.getInputStream());
                 this.userName = "";
+                this.id = 0;
                 this.loggedIn = false;
                 clientHandlers.add(this);
                 System.out.println("Client: " + client.getRemoteSocketAddress() + " connected");
@@ -697,143 +819,158 @@ public class Server
                     String[] command = line.split("\\s");
 
                     switch (command[0]) {
-                        case "LOGIN" -> {
-                            if (command.length == 3) {
-                                userName = logIn(out, command[1], command[2]);
-                                if (!userName.equals("")) {
-                                    this.loggedIn = true;
-                                    System.out.println("User: " + userName + " logged in: " + true);
+                            case "LOGIN" -> {
+                                if (command.length == 3) {
+                                    userName = logIn(out, command[1], command[2]);
+                                    if (!userName.equals("")) {
+                                        loggedIn = true;
+                                        id = setID(userName);
+                                        System.out.println("User " + userName + " (" + id + ") logged in =." + loggedIn);
+                                    }
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("INCORRECT FORMAT");
                                 }
-                            } else {
-                                out.write(2);
-                                out.writeUTF("400 ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
                             }
-                        }
-                        case "LOGOUT" -> {
-                            if (command.length == 2) {
-                                if (loggedIn == true) {
-                                    if (logOut(out, command[1]) && !command[1].isEmpty()) {
-                                        userName = "";
-                                        loggedIn = false;
-                                        out.write(2);
-                                        out.writeUTF("OK 200");
-                                        out.writeUTF("LOGGING OUT");
+                            case "LOGOUT" -> {
+                                if (command.length == 2) {
+                                    if (loggedIn == true) {
+                                        if (logOut(out, command[1]) && !command[1].isEmpty()) {
+                                            userName = "";
+                                            id = 0;
+                                            loggedIn = false;
+                                            out.write(2);
+                                            out.writeUTF("OK 200");
+                                            out.writeUTF("LOGGING OUT");
+                                        } else {
+                                            out.write(2);
+                                            out.writeUTF("401 ERROR");
+                                            out.writeUTF("USERNAME INCORRECT");
+                                        }
                                     } else {
                                         out.write(2);
-                                        out.writeUTF("401 ERROR");
-                                        out.writeUTF("USERNAME INCORRECT");
+                                        out.writeUTF("400 ERROR");
+                                        out.writeUTF("NOT LOGGED IN");
+                                    }
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("INCORRECT FORMAT");
+                                }
+                            }
+                            case "BUY" -> {
+                                if (command.length == 4) {
+                                    if (command[1].length() != 4) {
+                                        out.write(2);
+                                        out.writeUTF("403 Message Format Error");
+                                        out.writeUTF("Improper Stock Symbol Format");
+                                    } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
+                                        out.write(2);
+                                        out.writeUTF("403 Message Format Error");
+                                        out.writeUTF("USER NOT LOGGED IN");
+                                    } else {
+                                        buyStock(out, command[1], Double.parseDouble(command[2]),
+                                                Double.parseDouble(command[3]), id);
+                                    }
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("INCORRECT FORMAT");
+                                }
+                            }
+                            case "SELL" -> {
+                                if (command.length == 4) {
+                                    if (command[1].length() != 4) {
+                                        out.write(2);
+                                        out.writeUTF("403 Message Format Error");
+                                        out.writeUTF("Improper Stock Symbol Format");
+                                    } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
+                                        out.write(2);
+                                        out.writeUTF("403 Message Format Error");
+                                        out.writeUTF("USER NOT LOGGED IN");
+                                    } else {
+                                        sellStock(out, command[1], Double.parseDouble(command[2]),
+                                                Double.parseDouble(command[3]), id);
+                                    }
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("INCORRECT FORMAT");
+                                }
+                            }
+                            case "LIST" -> {
+                                if (id != 0) {
+                                    if (command.length == 1) {
+                                        printStock(out, id);
+                                    } else {
+                                        out.write(2);
+                                        out.writeUTF("400 ERROR");
+                                        out.writeUTF("INCORRECT FORMAT");
                                     }
                                 } else {
                                     out.write(2);
                                     out.writeUTF("400 ERROR");
                                     out.writeUTF("NOT LOGGED IN");
                                 }
-                            } else {
-                                out.write(2);
-                                out.writeUTF("400 ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
                             }
-                        }
-                        case "BUY" -> {
-                            if (command.length == 5) {
-                                if (command[1].length() != 4) {
-                                    out.write(2);
-                                    out.writeUTF("403 Message Format Error");
-                                    out.writeUTF("Improper Stock Symbol Format");
-                                } else if (Integer.parseInt(command[4]) != 1) {
-                                    out.write(2);
-                                    out.writeUTF("403 Message Format Error");
-                                    out.writeUTF("User does not exist");
+                            case "BALANCE" -> {
+                                if (loggedIn) {
+                                    if (command.length == 1) {
+                                        out.write(2);
+                                        out.writeUTF("200 OK");
+                                        double d = findBalance(id);
+                                        out.writeUTF("Balance for " + userName + ": $" + d);
+                                    } else {
+                                        out.write(2);
+                                        out.writeUTF("400 ERROR");
+                                        out.writeUTF("INCORRECT FORMAT");
+                                    }
                                 } else {
-                                    buyStock(out, command[1], Double.parseDouble(command[2]),
-                                            Double.parseDouble(command[3]), Integer.parseInt(command[4]));
+                                    out.write(2);
+                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("NOT LOGGED IN");
                                 }
-                            } else {
-                                out.write(2);
-                                out.writeUTF("400 ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
                             }
-                        }
-                        case "SELL" -> {
-                            if (command.length == 5) {
-                                if (command[1].length() != 4) {
-                                    out.write(2);
-                                    out.writeUTF("403 Message Format Error");
-                                    out.writeUTF("Improper Stock Symbol Format");
-                                } else if (Integer.parseInt(command[4]) != 1) {
-                                    out.write(2);
-                                    out.writeUTF("403 Message Format Error");
-                                    out.writeUTF("User does not exist");
+                            case "QUIT" -> {
+                                if (command.length == 1) {
+                                    out.write(1);
+                                    out.writeUTF("200 OK");
+                                    System.out.println("CLIENT: " + userName + " QUIT");
+                                    closeSocket(client, in, out);
                                 } else {
-                                    sellStock(out, command[1], Double.parseDouble(command[2]),
-                                            Double.parseDouble(command[3]), Integer.parseInt(command[4]));
+                                    out.write(2);
+                                    out.writeUTF("40) ERROR");
+                                    out.writeUTF("INCORRECT FORMAT");
                                 }
-                            } else {
+                            }
+                            case "SHUTDOWN" -> {
+                                if (command.length == 1) {
+                                    out.write(2);
+                                    out.writeUTF("200 OK");
+                                    out.writeUTF("SERVER SHUTTING DOWN");
+
+                                    System.out.println("SHUTTING DOWN");
+
+                                    client.close();
+                                    in.close();
+                                    out.close();
+                                    System.exit(0);
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("40) ERROR");
+                                    out.writeUTF("INCORRECT FORMAT");
+                                }
+                            }
+                            default -> {
+                                System.out.println(userName + ": INVALID COMMAND");
                                 out.write(2);
                                 out.writeUTF("400 ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
+                                out.writeUTF("INVALID COMMAND");
                             }
-                        }
-                        case "LIST" -> {
-                            if (command.length == 1) {
-                                printStock(out);
-                            } else {
-                                out.write(2);
-                                out.writeUTF("400 ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
-                            }
-                        }
-                        case "BALANCE" -> {
-                            if (command.length == 1) {
-                                out.write(2);
-                                out.writeUTF("200 OK");
-                                double d = findBalance();
-                                out.writeUTF("Balance for user John Doe: $" + d);
-                            } else {
-                                out.write(2);
-                                out.writeUTF("40) ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
-                            }
-                        }
-                        case "QUIT" -> {
-                            if (command.length == 1) {
-                                out.write(1);
-                                out.writeUTF("200 OK");
-                                System.out.println("CLIENT: " + userName + " QUIT");
-                                closeSocket(client, in, out);
-                                System.out.println(client.isConnected());
-                            } else {
-                                out.write(2);
-                                out.writeUTF("40) ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
-                            }
-                        }
-                        case "SHUTDOWN" -> {
-                            if (command.length == 1) {
-                                out.write(2);
-                                out.writeUTF("200 OK");
-                                out.writeUTF("SERVER SHUTTING DOWN");
-                                System.out.println("SHUTTING DOWN");
-                                client.close();
-                                in.close();
-                                out.close();
-                                System.exit(0);
-                            } else {
-                                out.write(2);
-                                out.writeUTF("40) ERROR");
-                                out.writeUTF("INCORRECT FORMAT");
-                            }
-                        }
-                        default -> {
-                            System.out.println("INVALID COMMAND");
-                            out.write(2);
-                            out.writeUTF("400 ERROR");
-                            out.writeUTF("INVALID COMMAND");
-                        }
                     }
                 } catch (IOException i) {
-                    System.out.println("CLIENT: " + i);
+                    System.out.println("CLIENT HANDLER: " + i);
                     closeSocket(client,in,out);
                 }
             }
