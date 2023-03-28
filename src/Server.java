@@ -645,7 +645,7 @@ public class Server
                         return user;
                     } else {
                         o.write(2);
-                        o.writeUTF("400 ERROR");
+                        o.writeUTF("403 ERROR");
                         o.writeUTF("PASSWORD INCORRECT");
 
                         rs.close();
@@ -659,8 +659,8 @@ public class Server
                 //count++;
             }
             o.write(2);
-            o.writeUTF("400 ERROR");
-            o.writeUTF("USER NOT FOUND");
+            o.writeUTF("403 ERROR");
+            o.writeUTF("USERNAME INCORRECT");
 
             rs.close();
             stmt.close();
@@ -716,50 +716,16 @@ public class Server
     }
 
     //Allows user to logout. They need to input the proper username. Returns a boolean.
-    public boolean logOut(DataOutputStream o, String s) {
-        Connection c;
-        Statement stmt;
+    public boolean logOut(DataOutputStream o, String s, String userName) {
 
-        try {
-            Class.forName("org.sqlite.JDBC");
-            c = DriverManager.getConnection("jdbc:sqlite:stock.db");
-            c.setAutoCommit(false);
-            System.out.println("Attempting Logout");
+        System.out.println("Attempting Logout");
 
-            stmt = c.createStatement();
-
-            ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
-
-            String user;
-            int count = 0;
-
-            while (rs.next()) {
-                user = rs.getString("user_name");
-
-                if (user.equals(s.toString())) {
-                    System.out.println("User: " + user + " logging out.");
-
-                    rs.close();
-                    stmt.close();
-                    c.close();
-
-                    return true;
-                }
-
-                count++;
-            }
-            o.write(2);
-            o.writeUTF("400 ERROR");
-            o.writeUTF("USER NOT FOUND");
-
-            rs.close();
-            stmt.close();
-            c.close();
-        } catch ( Exception e ) {
-            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-            System.exit(0);
+        if (s.equals(userName)) {
+            System.out.println("User: " + userName + " logging out.");
+            return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     //Closes client socket when they quit from the server
@@ -838,7 +804,7 @@ public class Server
                             case "LOGOUT" -> {
                                 if (command.length == 2) {
                                     if (loggedIn == true) {
-                                        if (logOut(out, command[1]) && !command[1].isEmpty()) {
+                                        if (logOut(out, command[1], userName) && !command[1].isEmpty()) {
                                             userName = "";
                                             id = 0;
                                             loggedIn = false;
