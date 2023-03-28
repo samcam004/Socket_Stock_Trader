@@ -558,7 +558,7 @@ public class Server
                         System.out.println("Sell Transaction Complete");
                         o.write(2);
                         o.writeUTF("200 OK");
-                        o.writeUTF("SOLD: Stock balance: " + (sA - amount) + " " + symbol + ". USD balance: $" + (balance + cost));
+                        o.writeUTF("SOLD: Stock balance: " + (sA - amount) + " " + symbol + ". USD balance: $" + findBalance(id));
 
                     } else if (sA == amount) {
                         System.out.println("Same as owned amount");
@@ -569,10 +569,11 @@ public class Server
                         stmt.executeUpdate();
                         c.commit();
 
-                        String update = "UPDATE users set usd_balance = ? where ID = 1;";
+                        String update = "UPDATE users set usd_balance = ? where ID = ?;";
                         stmt = c.prepareStatement(update);
 
                         stmt.setDouble(1, balance + cost);
+                        stmt.setInt(2, id);
                         stmt.executeUpdate();
                         c.commit();
 
