@@ -493,8 +493,8 @@ public class Server
         } else {
             System.out.println("Not Enough Balance");
             o.write(2);
-            o.writeUTF("400 ERROR");
-            o.writeUTF("Note Enough Balance");
+            o.writeUTF("406 ERROR");
+            o.writeUTF("EXCEEDS BALANCE");
         }
     }
 
@@ -584,8 +584,8 @@ public class Server
                     } else {
                         System.out.println("Exceeds Amount");
                         o.write(2);
-                        o.writeUTF("400 ERROR");
-                        o.writeUTF("EXCEED STOCK AMOUNT");
+                        o.writeUTF("407 ERROR");
+                        o.writeUTF("EXCEEDS STOCK AMOUNT");
 
                     }
                 } else
@@ -598,7 +598,7 @@ public class Server
             if (numStocks == count) {
                 System.out.println("No match");
                 o.write(2);
-                o.writeUTF("400 ERROR");
+                o.writeUTF("408 ERROR");
                 o.writeUTF("STOCK DOES NOT EXIST");
                 c.close();
             }
@@ -645,7 +645,7 @@ public class Server
                         return user;
                     } else {
                         o.write(2);
-                        o.writeUTF("403 ERROR");
+                        o.writeUTF("404 ERROR");
                         o.writeUTF("PASSWORD INCORRECT");
 
                         rs.close();
@@ -797,7 +797,7 @@ public class Server
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("402 ERROR");
                                     out.writeUTF("INCORRECT FORMAT");
                                 }
                             }
@@ -809,21 +809,21 @@ public class Server
                                             id = 0;
                                             loggedIn = false;
                                             out.write(2);
-                                            out.writeUTF("OK 200");
+                                            out.writeUTF("200 OK");
                                             out.writeUTF("LOGGING OUT");
                                         } else {
                                             out.write(2);
-                                            out.writeUTF("401 ERROR");
+                                            out.writeUTF("404 ERROR");
                                             out.writeUTF("USERNAME INCORRECT");
                                         }
                                     } else {
                                         out.write(2);
-                                        out.writeUTF("400 ERROR");
+                                        out.writeUTF("401 ERROR");
                                         out.writeUTF("NOT LOGGED IN");
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("402 ERROR");
                                     out.writeUTF("INCORRECT FORMAT");
                                 }
                             }
@@ -831,19 +831,19 @@ public class Server
                                 if (command.length == 4) {
                                     if (command[1].length() != 4) {
                                         out.write(2);
-                                        out.writeUTF("403 Message Format Error");
-                                        out.writeUTF("Improper Stock Symbol Format");
+                                        out.writeUTF("405 ERROR");
+                                        out.writeUTF("INCORRECT STOCK SYMBOL FORMAT");
                                     } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
                                         out.write(2);
-                                        out.writeUTF("403 Message Format Error");
-                                        out.writeUTF("USER NOT LOGGED IN");
+                                        out.writeUTF("401 ERROR");
+                                        out.writeUTF("NOT LOGGED IN");
                                     } else {
                                         buyStock(out, command[1], Double.parseDouble(command[2]),
                                                 Double.parseDouble(command[3]), id);
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("402 ERROR");
                                     out.writeUTF("INCORRECT FORMAT");
                                 }
                             }
@@ -851,19 +851,19 @@ public class Server
                                 if (command.length == 4) {
                                     if (command[1].length() != 4) {
                                         out.write(2);
-                                        out.writeUTF("403 Message Format Error");
-                                        out.writeUTF("Improper Stock Symbol Format");
+                                        out.writeUTF("405 ERROR");
+                                        out.writeUTF("INCORRECT STOCK SYMBOL FORMAT");
                                     } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
                                         out.write(2);
-                                        out.writeUTF("403 Message Format Error");
-                                        out.writeUTF("USER NOT LOGGED IN");
+                                        out.writeUTF("401 ERROR");
+                                        out.writeUTF("NOT LOGGED IN");
                                     } else {
                                         sellStock(out, command[1], Double.parseDouble(command[2]),
                                                 Double.parseDouble(command[3]), id);
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("402 ERROR");
                                     out.writeUTF("INCORRECT FORMAT");
                                 }
                             }
@@ -873,12 +873,12 @@ public class Server
                                         printStock(out, id);
                                     } else {
                                         out.write(2);
-                                        out.writeUTF("400 ERROR");
+                                        out.writeUTF("402 ERROR");
                                         out.writeUTF("INCORRECT FORMAT");
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("401 ERROR");
                                     out.writeUTF("NOT LOGGED IN");
                                 }
                             }
@@ -891,12 +891,12 @@ public class Server
                                         out.writeUTF("Balance for " + userName + ": $" + d);
                                     } else {
                                         out.write(2);
-                                        out.writeUTF("400 ERROR");
+                                        out.writeUTF("402 ERROR");
                                         out.writeUTF("INCORRECT FORMAT");
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("400 ERROR");
+                                    out.writeUTF("401 ERROR");
                                     out.writeUTF("NOT LOGGED IN");
                                 }
                             }
@@ -908,7 +908,7 @@ public class Server
                                     closeSocket(client, in, out);
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("40) ERROR");
+                                    out.writeUTF("402 ERROR");
                                     out.writeUTF("INCORRECT FORMAT");
                                 }
                             }
@@ -926,7 +926,7 @@ public class Server
                                     System.exit(0);
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("40) ERROR");
+                                    out.writeUTF("402 ERROR");
                                     out.writeUTF("INCORRECT FORMAT");
                                 }
                             }
