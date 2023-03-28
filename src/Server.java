@@ -915,16 +915,22 @@ public class Server
                             }
                             case "SHUTDOWN" -> {
                                 if (command.length == 1) {
-                                    out.write(2);
-                                    out.writeUTF("200 OK");
-                                    out.writeUTF("SERVER SHUTTING DOWN");
+                                    if (userName.equals("Root") && id == 1) {
+                                        out.write(2);
+                                        out.writeUTF("200 OK");
+                                        out.writeUTF("SERVER SHUTTING DOWN");
 
-                                    System.out.println("SHUTTING DOWN");
+                                        System.out.println("SHUTTING DOWN");
 
-                                    client.close();
-                                    in.close();
-                                    out.close();
-                                    System.exit(0);
+                                        client.close();
+                                        in.close();
+                                        out.close();
+                                        System.exit(0);
+                                    } else {
+                                        out.write(2);
+                                        out.writeUTF("409 ERROR");
+                                        out.writeUTF("PERMISSION REQUIRED");
+                                    }
                                 } else {
                                     out.write(2);
                                     out.writeUTF("402 ERROR");
