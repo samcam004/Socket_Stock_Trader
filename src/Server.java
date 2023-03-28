@@ -331,22 +331,24 @@ public class Server
                         o.writeUTF("The list of records in the Stocks database for User " + id + ":");
 
                         while (rs.next()) {
-                            //int userID = rs.getInt("id");
-                            String symbol = rs.getString("stock_symbol");
-                            double amount = rs.getDouble("stock_amount");
-                            double balance = rs.getDouble("stock_balance");
-                            //String user = rs.getString("user_name");
-                            //int user_id = rs.getInt("user_id");
+                            if (rs.getInt("user_id") == id) {
+                                //int userID = rs.getInt("id");
+                                String symbol = rs.getString("stock_symbol");
+                                double amount = rs.getDouble("stock_amount");
+                                double balance = rs.getDouble("stock_balance");
+                                //String user = rs.getString("user_name");
+                                //int user_id = rs.getInt("user_id");
 
-                            o.writeUTF(stockNum + " " + symbol + " " + amount + " " + balance);
+                                o.writeUTF(stockNum + " " + symbol + " " + amount + " " + balance);
 
-                            System.out.print("#" + stockNum);
-                            System.out.print(", Stock Symbol = " + symbol);
-                            System.out.print(", Stock Amount = " + amount);
-                            System.out.print(", Stock Balance = " + balance);
-                            System.out.print(", ID = " + id);
-                            System.out.println();
-                            stockNum++;
+                                System.out.print("#" + stockNum);
+                                System.out.print(", Stock Symbol = " + symbol);
+                                System.out.print(", Stock Amount = " + amount);
+                                System.out.print(", Stock Balance = " + balance);
+                                System.out.print(", ID = " + id);
+                                System.out.println();
+                                stockNum++;
+                            }
                         }
                         total.close();
                         rs.close();
