@@ -372,7 +372,7 @@ public class Server
     public double findBalance(int id) {
         Connection c;
         Statement stmt;
-        double usd = 0;
+        double usd = 0.0;
         try {
             Class.forName("org.sqlite.JDBC");
             c = DriverManager.getConnection("jdbc:sqlite:stock.db");
@@ -397,6 +397,39 @@ public class Server
         }
         //System.out.println("Operation done successfully\n");
         return usd;
+    }
+
+    //Allows users to add to existing balance
+    public void depositAmount(double amount, int id) {
+        Connection c;
+        PreparedStatement stmt;
+        double balance = findBalance(id);
+        double cost = amount;
+
+        try
+        {
+            Class.forName("org.sqlite.JDBC");
+            c = DriverManager.getConnection("jdbc:sqlite:stock.db");
+            c.setAutoCommit(false);
+
+
+            String update = "UPDATE users set usd_balance = ? where ID = ?;";
+            stmt = c.prepareStatement(update);
+            stmt.setDouble(1, amount + findBalance(id));
+            stmt.setInt(2, id);
+            stmt.executeUpdate();
+            c.commit();
+
+
+            System.out.println("deposit successfully. New balance $" + findBalance(id));
+
+            c.close();
+
+        }
+        catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
     }
 
     //Adds a stock to the database
@@ -889,7 +922,7 @@ public class Server
                                         out.write(2);
                                         out.writeUTF("200 OK");
                                         double d = findBalance(id);
-                                        out.writeUTF("Balance for " + userName + ": $" + d);
+                                        out.writeUTF("BALANCE: $" + d);
                                     } else {
                                         out.write(2);
                                         out.writeUTF("402 ERROR");
@@ -912,6 +945,18 @@ public class Server
                                 }
 
 
+                            }
+                            case "DEPOSIT" -> {
+                                if (loggedIn) {
+                                    out.write(2);
+                                    depositAmount(Double.parseDouble(command[1]), id);
+                                    out.writeUTF("200 OK");
+                                    out.writeUTF("NEW BALANCE: $" + findBalance(id));
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("401 ERROR");
+                                    out.writeUTF("NOT LOGGED IN");
+                                }
                             }
                             case "QUIT" -> {
                                 if (command.length == 1) {
