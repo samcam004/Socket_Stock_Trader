@@ -6,7 +6,6 @@ import java.util.ArrayList;
 
 public class Server
 {
-
     public Server(int port) {
         // starts server and waits for a connection
         try {
@@ -778,6 +777,7 @@ public class Server
 
         public void run() {
             String line;
+            int numClients = 0;
             System.out.println("Client: " + client.getRemoteSocketAddress() + " starting operation");
 
             while (!client.isClosed()) {
@@ -900,6 +900,18 @@ public class Server
                                     out.writeUTF("401 ERROR");
                                     out.writeUTF("NOT LOGGED IN");
                                 }
+                            }
+                            case "WHO" -> {
+                                if (userName.equals("Root")) {
+                                    numClients = clientHandlers.size();
+                                    out.write(numClients);
+                                }
+                                for (int i = 0; i < numClients; i++) {
+                                    System.out.println(clientHandlers.get(i).client.getRemoteSocketAddress());
+                                    out.writeUTF(clientHandlers.get(i).client.getRemoteSocketAddress().toString());
+                                }
+
+
                             }
                             case "QUIT" -> {
                                 if (command.length == 1) {
