@@ -628,7 +628,7 @@ public class Server
                     if (sA > amount) {
 
                         System.out.println("Less than owned amount");
-                        String sql = "UPDATE stocks SET stock_amount = ?, stock_balance = ? WHERE stock_symbol = ?";
+                        String sql = "UPDATE stocks SET stock_amount = ?, stock_balance = ? WHERE stock_symbol = ? AND user_id = ?";
                         stmt = c.prepareStatement(sql);
 
                         stmt.setDouble(1, (sA - amount));
@@ -679,7 +679,7 @@ public class Server
                         o.write(2);
                         o.writeUTF("407 ERROR");
                         o.writeUTF("EXCEEDS STOCK AMOUNT");
-
+                        return;
                     }
                 } else
                     numStocks++;
@@ -718,11 +718,9 @@ public class Server
             ResultSet rs = stmt.executeQuery("SELECT * FROM users;");
 
             String user;
-            //int count = 0;
 
             while (rs.next()) {
                 user = rs.getString("user_name");
-                System.out.println(user + " : " + s);
 
                 if (user.equals(s.toString())) {
                     if (rs.getString("password").equals(s1)) {
@@ -737,6 +735,7 @@ public class Server
 
                         return user;
                     } else {
+                        System.out.println("Incorrect password");
                         o.write(2);
                         o.writeUTF("404 ERROR");
                         o.writeUTF("PASSWORD INCORRECT");
@@ -748,9 +747,8 @@ public class Server
                         return "";
                     }
                 }
-
-                //count++;
             }
+            System.out.println("Incorrect username");
             o.write(2);
             o.writeUTF("403 ERROR");
             o.writeUTF("USERNAME INCORRECT");
@@ -884,7 +882,7 @@ public class Server
                             case "LOGIN" -> {
                                 if (command.length == 3) {
                                     userName = logIn(out, command[1], command[2]);
-                                    if (!loggedIn) {
+                                    if (!userName.equals("")) {
                                         loggedIn = true;
                                         id = setID(userName);
                                         System.out.println("User " + userName + " (" + id + ") logged in =." + loggedIn);
@@ -1012,8 +1010,8 @@ public class Server
                                     out.writeUTF("PERMISSION REQUIRED");
                                 }
                                 for (int i = 0; i < numClients; i++) {
-                                    System.out.println(clientHandlers.get(i).client.getRemoteSocketAddress());
-                                    out.writeUTF(clientHandlers.get(i).client.getRemoteSocketAddress().toString());
+                                    System.out.println(clientHandlers.get(i).userName + ": " + clientHandlers.get(i).client.getRemoteSocketAddress());
+                                    out.writeUTF(clientHandlers.get(i).userName + ": " + clientHandlers.get(i).client.getRemoteSocketAddress().toString());
                                 }
 
 
