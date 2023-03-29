@@ -399,7 +399,6 @@ public class Server
         return usd;
     }
 
-
     //Finds existing stock in stock table
     public void findStock(DataOutputStream o, String query) {
         Connection c;
@@ -440,12 +439,16 @@ public class Server
                     }
                 }
 
-                o.write(count + 1);
-                o.writeUTF("FOUND" + count + " MATCH");
-                for (int i = 0; i < count; i++) {
-                    o.writeUTF(foundMatch.get(i));
+                if (count != 0) {
+                    o.write(count + 1);
+                    o.writeUTF("FOUND" + count + " MATCH");
+                    for (int i = 0; i < count; i++) {
+                        o.writeUTF(foundMatch.get(i));
+                    }
+                } else {
+                    o.write(1);
+                    o.writeUTF("NO MATCHES");
                 }
-
                 rs.close();
             }
             stmt.close();
