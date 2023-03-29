@@ -881,7 +881,7 @@ public class Server
                             case "LOGIN" -> {
                                 if (command.length == 3) {
                                     userName = logIn(out, command[1], command[2]);
-                                    if (!userName.equals("")) {
+                                    if (!loggedIn) {
                                         loggedIn = true;
                                         id = setID(userName);
                                         System.out.println("User " + userName + " (" + id + ") logged in =." + loggedIn);
@@ -919,47 +919,55 @@ public class Server
                                 }
                             }
                             case "BUY" -> {
-                                if (command.length == 4) {
-                                    if (command[1].length() != 4) {
-                                        out.write(2);
-                                        out.writeUTF("405 ERROR");
-                                        out.writeUTF("INCORRECT STOCK SYMBOL FORMAT");
-                                    } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
-                                        out.write(2);
-                                        out.writeUTF("401 ERROR");
-                                        out.writeUTF("NOT LOGGED IN");
+                                if (loggedIn) {
+                                    if (command.length == 4) {
+                                        if (command[1].length() != 4) {
+                                            out.write(2);
+                                            out.writeUTF("405 ERROR");
+                                            out.writeUTF("INCORRECT STOCK SYMBOL FORMAT");
+                                        } else {
+                                            buyStock(out, command[1], Double.parseDouble(command[2]),
+                                                    Double.parseDouble(command[3]), id);
+                                        }
                                     } else {
-                                        buyStock(out, command[1], Double.parseDouble(command[2]),
-                                                Double.parseDouble(command[3]), id);
+                                        out.write(2);
+                                        out.writeUTF("402 ERROR");
+                                        out.writeUTF("INCORRECT FORMAT");
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("402 ERROR");
-                                    out.writeUTF("INCORRECT FORMAT");
+                                    out.writeUTF("401 ERROR");
+                                    out.writeUTF("NOT LOGGED IN");
                                 }
                             }
                             case "SELL" -> {
-                                if (command.length == 4) {
-                                    if (command[1].length() != 4) {
-                                        out.write(2);
-                                        out.writeUTF("405 ERROR");
-                                        out.writeUTF("INCORRECT STOCK SYMBOL FORMAT");
-                                    } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
-                                        out.write(2);
-                                        out.writeUTF("401 ERROR");
-                                        out.writeUTF("NOT LOGGED IN");
+                                if (loggedIn) {
+                                    if (command.length == 4) {
+                                        if (command[1].length() != 4) {
+                                            out.write(2);
+                                            out.writeUTF("405 ERROR");
+                                            out.writeUTF("INCORRECT STOCK SYMBOL FORMAT");
+                                        } else if (/*Integer.parseInt(command[4]) != 1*/ !loggedIn) {
+                                            out.write(2);
+                                            out.writeUTF("401 ERROR");
+                                            out.writeUTF("NOT LOGGED IN");
+                                        } else {
+                                            sellStock(out, command[1], Double.parseDouble(command[2]),
+                                                    Double.parseDouble(command[3]), id);
+                                        }
                                     } else {
-                                        sellStock(out, command[1], Double.parseDouble(command[2]),
-                                                Double.parseDouble(command[3]), id);
+                                        out.write(2);
+                                        out.writeUTF("402 ERROR");
+                                        out.writeUTF("INCORRECT FORMAT");
                                     }
                                 } else {
                                     out.write(2);
-                                    out.writeUTF("402 ERROR");
-                                    out.writeUTF("INCORRECT FORMAT");
+                                    out.writeUTF("401 ERROR");
+                                    out.writeUTF("NOT LOGGED IN");
                                 }
                             }
                             case "LIST" -> {
-                                if (id != 0) {
+                                if (loggedIn) {
                                     if (command.length == 1) {
                                         printStock(out, id);
                                     } else {
@@ -995,6 +1003,10 @@ public class Server
                                 if (userName.equals("Root")) {
                                     numClients = clientHandlers.size();
                                     out.write(numClients);
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("409 ERROR");
+                                    out.writeUTF("PERMISSION REQUIRED");
                                 }
                                 for (int i = 0; i < numClients; i++) {
                                     System.out.println(clientHandlers.get(i).client.getRemoteSocketAddress());
@@ -1016,7 +1028,20 @@ public class Server
                                 }
                             }
                             case "LOOKUP" -> {
-                                findStock(out, command[1]);
+                                if (loggedIn) {
+                                    if (command.length == 2 && command[1].length() == 4) {
+                                        findStock(out, command[1]);
+                                    } else {
+                                        out.write(2);
+                                        out.writeUTF("402 ERROR");
+                                        out.writeUTF("INCORRECT FORMAT");
+                                    }
+
+                                } else {
+                                    out.write(2);
+                                    out.writeUTF("401 ERROR");
+                                    out.writeUTF("NOT LOGGED IN");
+                                }
                             }
                             case "QUIT" -> {
                                 if (command.length == 1) {
