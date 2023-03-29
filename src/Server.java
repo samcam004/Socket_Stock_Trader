@@ -519,7 +519,7 @@ public class Server
                     //double  sB = rs.getDouble("stock_balance");
 
                     //Checks to see if stock exists, if it does, it is modified with new values
-                    if (sS.equals(symbol)) {
+                    if (sS.equals(symbol) && sI == id) {
                         System.out.println("\nBuying existing stock");
                         String sql = "UPDATE stocks SET stock_amount = ?, stock_balance = ? WHERE stock_symbol = ? AND user_id = ?";
                         stmt = c.prepareStatement(sql);
@@ -562,7 +562,7 @@ public class Server
                 stmt.setInt(4, id);
                 stmt.executeUpdate();
 
-                String update = "UPDATE users set usd_balance = ? where ID = ?;";
+                String update = "UPDATE users set usd_balance = ? WHERE ID = ?;";
                 stmt = c.prepareStatement(update);
 
                 stmt.setDouble(1, balance - cost);
