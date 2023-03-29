@@ -399,6 +399,63 @@ public class Server
         return usd;
     }
 
+
+    //Finds existing stock in stock table
+    public void findStock(DataOutputStream o, String query) {
+        Connection c;
+        Statement stmt;
+        int count = 0;
+
+        try {
+            Class.forName("org.sqlite.JDBC");
+            c = DriverManager.getConnection("jdbc:sqlite:stock.db");
+            c.setAutoCommit(false);
+
+            ArrayList<String> foundMatch = new ArrayList<>();
+
+            stmt = c.createStatement();
+            ResultSet empty = stmt.executeQuery( "SELECT * FROM stocks;" );
+
+            if (!empty.next()){
+                System.out.println("No stocks owned");
+                o.write(2);
+                o.writeUTF("200 OK");
+                o.writeUTF("No stocks in Database");
+                empty.close();
+            } else {
+
+                ResultSet rs = stmt.executeQuery("SELECT * FROM stocks;");
+
+                while (rs.next()) {
+                    if (rs.getString("stock_symbol").equals(query)) {
+                        String symbol = rs.getString("stock_symbol");
+                        double amount = rs.getDouble("stock_amount");
+
+
+                        System.out.print("Stock Symbol = " + symbol);
+                        System.out.println(", Stock Amount = " + amount);
+
+                        foundMatch.add(symbol + " " + amount);
+                        count++;
+                    }
+                }
+
+                o.write(count + 1);
+                o.writeUTF("FOUND" + count + " MATCH");
+                for (int i = 0; i < count; i++) {
+                    o.writeUTF(foundMatch.get(i));
+                }
+
+                rs.close();
+            }
+            stmt.close();
+            c.close();
+        } catch ( Exception e ) {
+            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            System.exit(0);
+        }
+        System.out.println("Operation done successfully\n");
+    }
     //Allows users to add to existing balance
     public void depositAmount(double amount, int id) {
         Connection c;
@@ -957,6 +1014,9 @@ public class Server
                                     out.writeUTF("401 ERROR");
                                     out.writeUTF("NOT LOGGED IN");
                                 }
+                            }
+                            case "LOOKUP" -> {
+                                findStock(out, command[1]);
                             }
                             case "QUIT" -> {
                                 if (command.length == 1) {
